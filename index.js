@@ -21,7 +21,8 @@ require("dotenv").config()
 const app = express();
 
 const corsOptions = {
-    origin: [process.env.DEV_ORIGIN, "http://localhost:5174"],
+    // origin: [process.env.DEV_ORIGIN, "http://localhost:5174", ],
+    origin: ["https://starmap.orionarquitetura.com", "https://starmap.cliente.orionarquitetura.com"],
     credentials: true,
 };
 
