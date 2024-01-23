@@ -9,8 +9,26 @@ const ComentarioSchema = new mongoose.Schema({
         type: mongoose.Types.ObjectId,
         ref: "User",
         required: true
+    },
+    projeto: {
+        type: mongoose.Types.ObjectId,
+        ref: "Projeto",
+        required: true
+    },
+    entrega: {
+        type: mongoose.Types.ObjectId,
+        ref: "Entrega",
+    },
+    arquivo: {
+        type: mongoose.Types.ObjectId,
+        ref: "Arquivo",
+    },
+    visivelParaCliente: {
+        type: Boolean,
+        required: true,
+        default: false
     }
-}, { timestamps: true }) 
+}, { timestamps: true })
 
 
 const Comentario = mongoose.models.Comentario || mongoose.model("Comentario", ComentarioSchema, "Comentarios")

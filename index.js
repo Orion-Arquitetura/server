@@ -26,7 +26,7 @@ const corsOptions = {
 };
 
 app.use(json());
-app.use(urlencoded({ extended: false }));
+app.use(urlencoded({ extended: true }));
 app.use(cors(corsOptions));
 app.use(cookieParser(process.env.CK_SECRET));
 
@@ -42,35 +42,6 @@ app.use('/files', filesRouter);
 app.use('/reviews', reviewsRouter);
 app.use('/entregas', entregasRouter);
 app.use('/notificacoes', notificationsRouter);
-
-// app.get('/email', async (req, res) => {
-//     const transport = nodemailer.createTransport({
-//         host: 'smtp.hostinger.com',
-//         port: 587,
-//         secure: false,
-//         auth: {
-//             user: 'admin@orionarquitetura.com',
-//             pass: 'IMG_4257^@fDESU',
-//         },
-//     });
-
-//     const email = {
-//         from: 'admin@orionarquitetura.com',
-//         to: 'bruno.machado98@hotmail.com',
-//         subject: 'Assunto do email',
-//         text: 'Conteúdo do email',
-//     };
-
-//     transport.sendMail(email, (error, info) => {
-//         if (error) {
-//             console.log(error);
-//         } else {
-//             console.log('Email enviado: ' + info.response);
-//         }
-//     });
-
-//     res.status(200).end();
-// });
 
 app.listen(4000, () => {
     console.log('Server running.');

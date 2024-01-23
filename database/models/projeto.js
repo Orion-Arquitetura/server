@@ -9,8 +9,17 @@ const ProjetoSchema = new mongoose.Schema({
             return value.toUpperCase()
         }
     },
-    equipes: {
-        type: [{type: mongoose.Types.ObjectId, ref: "Equipe"}]
+    projetistas: {
+        type: [{ type: mongoose.Types.ObjectId, ref: "User" }],
+        default: []
+    },
+    engenheiros: {
+        type: [{ type: mongoose.Types.ObjectId, ref: "User" }],
+        default: []
+    },
+    arquitetos: {
+        type: [{ type: mongoose.Types.ObjectId, ref: "User" }],
+        default: []
     },
     clientes: {
         type: [{ type: mongoose.Types.ObjectId, ref: "User" }],
@@ -40,23 +49,20 @@ const ProjetoSchema = new mongoose.Schema({
         }],
         default: []
     },
-    comentarios_funcionarios: {
+    comentarios: {
         type: [{
             type: mongoose.Types.ObjectId,
             ref: "Comentario"
         }],
     },
-    comentarios_clientes: {
+    atualizacoes: {
         type: [{
             type: mongoose.Types.ObjectId,
-            ref: "Comentario"
+            ref: "Atualizacao",
         }],
+        default: []
     }
 }, { timestamps: true });
-
-ProjetoSchema.statics.createProject = async function({}) {
-
-}
 
 const Projeto = mongoose.models.Projeto || mongoose.model("Projeto", ProjetoSchema, "Projetos");
 

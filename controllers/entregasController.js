@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const Entrega = require("../database/models/entrega");
 const Projeto = require("../database/models/projeto");
 const Arquivo = require("../database/models/arquivo");
+const Comentario = require("../database/models/comentario");
 
 
 const entregasController = {
@@ -134,7 +135,6 @@ const entregasController = {
             res.status(500).json({ error: true, message: e.message })
         }
     },
-
     setText: async (req, res) => {
         try {
             const { entregaID, text } = req.body
@@ -172,6 +172,35 @@ const entregasController = {
             })
 
             res.status(200).json({ error: false, message: "Nome modificado com sucesso.", data: { projeto: entrega.projeto } })
+        } catch (e) {
+            console.log(e)
+            res.status(500).json({ error: true, message: e.message })
+        }
+    },
+    addEntregaComment: async (req, res) => {
+        try {
+            const { projectID, entregaID, comment, visivelParaCliente } = req.body;
+
+            console.log({ projectID, entregaID, comment, visivelParaCliente })
+
+            const comentario = await Comentario.create({
+                conteudo: comment,
+                usuario: new mongoose.Types.ObjectId(req.user.id),
+                projeto: new mongoose.Types.ObjectId(projectID),
+                entrega: new mongoose.Types.ObjectId(entregaID),
+                visivelParaCliente
+            }).catch(e => {
+                throw new Error(e)
+            })
+
+            await Entrega.updateOne({_id: entregaID}, {
+                $addToSet: {
+                    comentarios: new mongoose.Types.ObjectId(comentario._id)
+                }
+            })
+
+            res.status(200).json({ error: false, message: "ok" })
+
         } catch (e) {
             console.log(e)
             res.status(500).json({ error: true, message: e.message })

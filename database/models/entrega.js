@@ -13,7 +13,7 @@ const EntregaSchema = new mongoose.Schema({
         type: String,
     },
     arquivos: {
-        type: [{type: mongoose.Types.ObjectId, ref: "Arquivo"}],
+        type: [{ type: mongoose.Types.ObjectId, ref: "Arquivo" }],
         default: []
     },
     projeto: {
@@ -26,6 +26,20 @@ const EntregaSchema = new mongoose.Schema({
         enum: ["Em preparo", "Aguardando aprovação", "Aprovada", "Rejeitada"],
         default: "Em preparo"
     },
+    atualizacoes: {
+        type: [{
+            type: mongoose.Types.ObjectId,
+            ref: "Atualizacao",
+        }],
+        default: []
+    },
+    comentarios: {
+        type: [{
+            type: mongoose.Types.ObjectId,
+            ref: "Comentario",
+        }],
+        default: []
+    }
 }, { timestamps: true })
 
 const Entrega = mongoose.models.Entrega || mongoose.model("Entrega", EntregaSchema, "Entregas");

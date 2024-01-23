@@ -12,9 +12,6 @@ const UserSchema = new mongoose.Schema(
             type: String,
             default: ""
         },
-        idade: {
-            type: Number,
-        },
         data_aniversario: {
             type: Date,
         },
@@ -42,16 +39,10 @@ const UserSchema = new mongoose.Schema(
                         type: mongoose.Types.ObjectId,
                         ref: "Projeto",
                     },
-                    equipes: [
-                        {
-                            equipe: { type: mongoose.Types.ObjectId, ref: "Equipe" },
-                            funcao: {
-                                type: String,
-                                enum: ["arquiteto_lider", "projetista", "engenheiro"],
-                                required: true,
-                            }
-                        }
-                    ],
+                    funcao: {
+                        type: String,
+                        enum: ["cliente", "projetista", "engenheiro", "arquiteto"]
+                    }
                 },
             ],
             default: [],
@@ -71,6 +62,26 @@ const UserSchema = new mongoose.Schema(
     },
     { timestamps: true }
 );
+
+UserSchema.virtual("idade").get(function () {
+    const currentDate = new Date();
+    const birthDate = this.data_aniversario;
+    const age = currentDate.getFullYear() - birthDate.getFullYear();
+
+    // Adjust age based on the month and day
+    if (currentDate.getMonth() < birthDate.getMonth() ||
+        (currentDate.getMonth() === birthDate.getMonth() && currentDate.getDate() < birthDate.getDate())) {
+        return age - 1;
+    } else {
+        return age;
+    }
+});
+
+UserSchema.virtual("nome_completo").get(function () {
+    return `${this.nome} ${this.sobrenome}`
+})
+
+UserSchema.set("toJSON", { getters: true })
 
 UserSchema.statics.createUser = async function ({ nome, email, tipo, sobrenome = "", data_aniversario = "", idade = "" }) {
     if (!nome) {

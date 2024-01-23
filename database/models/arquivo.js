@@ -26,19 +26,19 @@ const ArquivoSchema = new mongoose.Schema({
         ref: "Projeto",
         required: true
     },
-    equipe: {
-        type: mongoose.Types.ObjectId,
-        ref: "Equipe",
-        required: true
-    },
     pedido_revisao: {
         type: mongoose.Types.ObjectId,
         ref: "Revisao",
         default: null
     },
+    status: {
+        type: [String],
+        enum: ["Aprovado pelo cliente", "Aprovado pelo arquiteto", "Aprovado pelo engenheiro",
+            "Reprovado pelo cliente", "Reprovado pelo arquiteto", "Reprovado pelo engenheiro"]
+    },
     revisao: {
-        type: String,
-        default: "R00",
+        type: Number,
+        default: 0,
         required: true
     },
     ultimaVersao: {
@@ -79,50 +79,31 @@ const ArquivoSchema = new mongoose.Schema({
         type: String,
         required: true
     },
-    comentarios_funcionarios: {
+    comentarios: {
         type: [{
             type: mongoose.Types.ObjectId,
             ref: "Comentario"
         }],
     },
-    comentarios_clientes: {
-        type: [{
-            type: mongoose.Types.ObjectId,
-            ref: "Comentario"
-        }],
+    visivelParaCliente: {
+        type: Boolean,
+        required: true,
+        default: false
+    },
+    atualizacoes: {
+        type: [{ type: mongoose.Types.ObjectId, ref: "Atualizacao" }],
+        default: []
     }
 }, { timestamps: true })
 
-ArquivoSchema.statics.createFirstVersionFile = async function (filename, fileExt, projeto, numeroDaPrancha, disciplina, conteudo, etapa, criadoPor, gridID) {
+ArquivoSchema.virtual("revisao_string").get(function () {
+    const reviewString = this.revisao.toString();
+    return "R" + (this.revisao < 9 ? reviewString.padStart(2, "0") : reviewString)
+})
 
-    const newFile = await this.create({
-        nome: filename,
-        extensao: fileExt,
-        projeto,
-        numeroDaPrancha,
-        disciplina,
-        conteudo,
-        etapa,
-        versao: 0,
-        criadoPor,
-        gridID
-    }).catch(e => {
-        throw new Error(e)
-    })
+ArquivoSchema.set('toJSON', { virtuals: true })
 
-    await Projeto.updateOne({ _id: projeto }, {
-        $addToSet: {
-            arquivos: newFile._id
-        }
-    }).catch(e => {
-        throw new Error(e)
-    })
-
-    return newFile
-}
-
-ArquivoSchema.statics.createNewVersionFile = async function (filename, fileExt, projeto, versao, numeroDaPrancha, disciplina, conteudo, etapa, criadoPor, gridID, revisaoGeratriz) {
-
+ArquivoSchema.statics.createFile = async function (filename, fileExt, projeto, numeroDaPrancha, disciplina, conteudo, etapa, versao, criadoPor, gridID, visivelParaCliente) {
     const newFile = await this.create({
         nome: filename,
         extensao: fileExt,
@@ -132,9 +113,9 @@ ArquivoSchema.statics.createNewVersionFile = async function (filename, fileExt, 
         conteudo,
         etapa,
         versao,
-        criadoPor,
+        criadoPor: new mongoose.Types.ObjectId(criadoPor),
         gridID,
-        revisaoGeratriz
+        visivelParaCliente
     }).catch(e => {
         throw new Error(e)
     })
@@ -150,27 +131,64 @@ ArquivoSchema.statics.createNewVersionFile = async function (filename, fileExt, 
     return newFile
 }
 
+//IMPORTANTE!!!!!!! ATUALIZAR METODOS ABAIXO PARA NOVA FORMA DE UPLOAD ONDE O USUARIO DEFINIRÁ A VERSAO (R**)
+
+// ArquivoSchema.statics.createNewVersionFile = async function (filename, fileExt, projeto, versao, numeroDaPrancha, disciplina, conteudo, etapa, criadoPor, gridID, revisaoGeratriz) {
+
+//     const newFile = await this.create({
+//         nome: filename,
+//         extensao: fileExt,
+//         projeto,
+//         numeroDaPrancha,
+//         disciplina,
+//         conteudo,
+//         etapa,
+//         versao,
+//         criadoPor,
+//         gridID,
+//         revisaoGeratriz
+//     }).catch(e => {
+//         throw new Error(e)
+//     })
+
+//     await Projeto.updateOne({ _id: projeto }, {
+//         $addToSet: {
+//             arquivos: newFile._id
+//         }
+//     }).catch(e => {
+//         throw new Error(e)
+//     })
+
+//     return newFile
+// }
+
 
 ArquivoSchema.statics.deleteFile = async function (id) {
 
-    const arquivoDocument = await this.findOneAndDelete({ _id: id }).populate("revisaoGeratriz").catch(e => {
+    // const arquivoDocument = await this.findOneAndDelete({ _id: id }).populate("revisaoGeratriz").catch(e => {
+    //     throw new Error(e)
+    // })
+    const arquivoDocument = await this.findOneAndDelete({ _id: id }).catch(e => {
         throw new Error(e)
     })
 
-    if (arquivoDocument.entregas.length > 0) {
-        throw new Error("Para excluir o arquivo primeiro retire-o de todas as entregas das quais faz parte.")
-    }
+    console.log({ arquivoDocument })
+    console.log({ id })
 
-    if (arquivoDocument.revisaoGeratriz) {
-        await this.updateOne({ _id: arquivoDocument.revisaoGeratriz.arquivoInicial }, {
-            $set: {
-                ultimaVersao: true,
-                revisao: null
-            }
-        }).catch(e => {
-            throw new Error(e)
-        })
-    }
+    // if (arquivoDocument.entregas.length > 0) {
+    //     throw new Error("Para excluir o arquivo primeiro retire-o de todas as entregas das quais faz parte.")
+    // }
+
+    // if (arquivoDocument.revisaoGeratriz) {
+    //     await this.updateOne({ _id: arquivoDocument.revisaoGeratriz.arquivoInicial }, {
+    //         $set: {
+    //             ultimaVersao: true,
+    //             revisao: null
+    //         }
+    //     }).catch(e => {
+    //         throw new Error(e)
+    //     })
+    // }
 
     Projeto.updateOne({ _id: arquivoDocument.projeto }, {
         $pull: {

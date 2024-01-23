@@ -13,8 +13,8 @@ const { GridFSBucket } = require("mongodb");
 const path = require("path");
 const Revisao = require("../database/models/revisao.js");
 const Arquivo = require("../database/models/arquivo.js");
-const { pid } = require("process");
-
+const { readable } = require("stream")
+const archiver = require("archiver");
 
 const filesController = {
     createFile: async (req, res) => {
@@ -25,14 +25,16 @@ const filesController = {
             const [fields, files] = await form.parse(req).then(res => { console.log(res); return res });
 
             const numeroDaPrancha = fields.numeroDaPrancha[0];
+            const visivelParaCliente = fields.visivelParaCliente[0] === "true" ? true : false
             const project = await Projeto.findOne({ _id: fields.projectID[0] });
             const disciplina = await Disciplina.findOne({ _id: fields.disciplina[0] });
             const conteudo = await Conteudo.findOne({ _id: fields.conteudo[0] });
             const etapa = await Etapa.findOne({ _id: fields.etapa[0] });
 
             const file = (files.arquivo)[0];
+            const versao = file.originalFilename.match(/\d{2}(?=\.)/)[0]
 
-            const filename = `${project.ano}-${project.numero > 9 ? project.numero : `0${project.numero}`}-${project.nome}-${numeroDaPrancha}-${conteudo.sigla}-${disciplina.sigla}-${etapa.sigla}-R00`;
+            const filename = `${project.ano}-${project.numero > 9 ? project.numero : `0${project.numero}`}-${project.nome}-${numeroDaPrancha}-${conteudo.sigla}-${disciplina.sigla}-${etapa.sigla}-R${versao}`;
 
             const fileAlreadyExists = await Arquivo.findOne({ nome: filename })
 
@@ -47,20 +49,21 @@ const filesController = {
             const gridID = uploadStream.id;
 
             uploadStream.on("finish", async () => {
+                console.log("Upload finalizado")
 
-                await Arquivo.createFirstVersionFile(filename, fileExt, project._id, numeroDaPrancha, disciplina._id, conteudo._id, etapa._id, req.user.id, gridID)
+                await Arquivo.createFile(filename, fileExt, project._id, numeroDaPrancha, disciplina._id, conteudo._id, etapa._id, versao, req.user.id, gridID, visivelParaCliente)
 
                 res.status(201).json({ error: false, message: "Arquivo criado com sucesso", data: { projectID: project._id, disciplina: disciplina._id } })
             })
 
             uploadStream.on("error", (e) => {
+                console.log(e)
                 throw e
             })
 
             const readStream = createReadStream(file.filepath);
 
             readStream.pipe(uploadStream);
-
         } catch (e) {
             console.log(e);
             res.status(400).json({ error: true, message: e.message });
@@ -85,7 +88,9 @@ const filesController = {
         try {
             const { pid: projectID, did: disciplinaID } = req.query
 
-            const arquivos = await Arquivo.find({ projeto: projectID, disciplina: disciplinaID }).populate("criadoPor revisao projeto").populate({ path: "revisao", populate: { path: "responsavel" } }).catch(e => {
+            console.log({ projectID, disciplinaID })
+
+            const arquivos = await Arquivo.find({ projeto: projectID, disciplina: disciplinaID }).populate("criadoPor pedido_revisao projeto").populate({ path: "pedido_revisao", populate: { path: "responsavel" } }).catch(e => {
                 throw new Error(e)
             })
 
@@ -96,6 +101,75 @@ const filesController = {
             res.status(500).json({ error: true, message: e.message });
         }
     },
+    changeFileVisibility: async (req, res) => {
+        try {
+            const { fileID, fileVisibility } = req.body;
+
+            const file = await Arquivo.findOneAndUpdate({ _id: fileID }, {
+                $set: {
+                    visivelParaCliente: !fileVisibility
+                }
+            }).catch(e => {
+                throw new Error(e)
+            })
+
+            res.status(200).json({ error: false, message: "Ok", data: { projectID: file.projeto, disciplina: file.disciplina } })
+
+        } catch (e) {
+            console.log(e)
+            res.status(500).json({ error: true, message: e.message })
+        }
+    },
+    updateFile: async (req, res) => {
+        try {
+            const { bucket } = await dbconnection()
+
+            const form = new formidable.IncomingForm({ keepExtensions: true });
+
+            const [fields, files] = await form.parse(req).then(res => { console.log(res); return res });
+
+            const revisao = Number(fields.revisao[0]) <= 9 ? fields.revisao[0].padStart(2, "0") : fields.revisao[0]
+
+            const newFileName = files.arquivo[0].originalFilename.split(/R\d{2}.+/)[0] + `R${revisao}`
+
+            const uploadStream = bucket.openUploadStream(newFileName);
+            const gridID = uploadStream.id;
+
+            uploadStream.on("finish", async () => {
+                console.log("Upload finalizado")
+
+                const arquivo = await Arquivo.findOneAndUpdate({ _id: fields.fileID[0] }, {
+                    $set: {
+                        nome: newFileName,
+                        gridID,
+                        revisao: Number(revisao)
+                    }
+                }).catch(e => {
+                    throw new Error(e)
+                })
+
+                await bucket.delete(new mongoose.Types.ObjectId(fields.gridID[0])).catch(e => {
+                    throw new Error(e)
+                })
+
+                res.status(200).json({ error: false, message: "Arquivo atualizado com sucesso", data: { projectID: arquivo.projeto, disciplina: arquivo.disciplina } })
+            })
+
+            uploadStream.on("error", (e) => {
+                console.log(e)
+                throw e
+            })
+
+            const readStream = createReadStream(files.arquivo[0].filepath);
+
+            readStream.pipe(uploadStream);
+        } catch (e) {
+            console.log(e)
+            res.status(500).json({ error: true, message: e.message })
+        }
+    },
+
+
     // IMPORTANTE REVISAR TODAS AS FUNCOES ABAIXO
     getFileBinaries: async (req, res) => {
         try {
@@ -202,6 +276,21 @@ const filesController = {
             return;
         }
     },
+
+    
+    //DANGER ZONE: download multiple files
+    downloadMultipleFiles: async (req, res) => {
+        try {
+            const filesIds = req.query.filesIds
+
+            console.log({ filesIds })
+
+            return res.status(200).json({ error: false, message: "Ok" });
+        } catch (e) {
+            console.log(e)
+            return res.status(400).json({ error: true, message: e.message });
+        }
+    }
 };
 
 module.exports = filesController;
