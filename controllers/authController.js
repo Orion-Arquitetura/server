@@ -24,7 +24,9 @@ const authController = {
                 refreshToken
             });
 
-            const cookieSettings = process.env.NODE_ENV === "production" ? { httpOnly: true, maxAge: 60 * 60 * 24 * 1000, secure: true, sameSite: "none" } : { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 }
+            console.log("to aqui: " + process.env.NODE_ENV)
+
+            const cookieSettings = process.env.NODE_ENV === "production" ? { httpOnly: true, maxAge: 60 * 60 * 24 * 1000, secure: true, sameSite: "None" } : { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 }
 
             res.cookie('refreshToken', refreshToken, cookieSettings);
 
@@ -53,7 +55,7 @@ const authController = {
                 refreshToken
             });
 
-            const cookieSettings = process.env.NODE_ENV === "production" ? { httpOnly: true, maxAge: 60 * 60 * 24 * 1000, secure: true, sameSite: "none" } : { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 }
+            const cookieSettings = process.env.NODE_ENV === "production" ? { httpOnly: true, maxAge: 60 * 60 * 24 * 1000, secure: true, sameSite: "None" } : { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 }
 
             res.cookie('refreshToken', refreshToken, cookieSettings);
 
