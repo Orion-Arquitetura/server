@@ -12,7 +12,11 @@ const authController = {
                 throw new Error(e.message)
             });
 
-            const accessToken = jwt.sign({ id: user._id, tipo: user.tipo, nome: `${user.nome} ${user.sobrenome}` }, process.env.AT_SECRET, { expiresIn: 5 });
+            if (user.tipo === "cliente") {
+                throw new Error("Usuário não encontrado.")
+            }
+
+            const accessToken = jwt.sign({ id: user._id, tipo: user.tipo, nome: `${user.nome} ${user.sobrenome}` }, process.env.AT_SECRET, { expiresIn: 60 * 15 });
             const refreshToken = jwt.sign({ id: user._id, tipo: user.tipo, nome: `${user.nome} ${user.sobrenome}` }, process.env.RT_SECRET, { expiresIn: '1d' });
 
             await Session.create({
@@ -39,7 +43,7 @@ const authController = {
                 throw new Error("Usuário não encontrado.")
             }
 
-            const accessToken = jwt.sign({ id: user._id, tipo: user.tipo, nome: `${user.nome} ${user.sobrenome}` }, process.env.AT_SECRET, { expiresIn: 5 });
+            const accessToken = jwt.sign({ id: user._id, tipo: user.tipo, nome: `${user.nome} ${user.sobrenome}` }, process.env.AT_SECRET, { expiresIn: 60 * 15 });
             const refreshToken = jwt.sign({ id: user._id, tipo: user.tipo, nome: `${user.nome} ${user.sobrenome}` }, process.env.RT_SECRET, { expiresIn: '1d' });
 
             await Session.create({
