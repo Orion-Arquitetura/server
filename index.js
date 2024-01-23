@@ -20,11 +20,13 @@ const notificationsRouter = require('./routes/notificationsRouter.js');
 require("dotenv").config()
 const app = express();
 
-const corsOptions = {
-    // origin: [process.env.DEV_ORIGIN, "http://localhost:5174", ],
+const corsOptions = process.env.NODE_ENV === "production" ? {
     origin: ["https://starmap.orionarquitetura.com", "https://starmap.cliente.orionarquitetura.com"],
     credentials: true,
-};
+} : {
+    origin: [process.env.DEV_ORIGIN, "http://localhost:5174",],
+    credentials: true,
+}
 
 app.use(json());
 app.use(urlencoded({ extended: true }));
