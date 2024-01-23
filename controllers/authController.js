@@ -24,14 +24,16 @@ const authController = {
                 refreshToken
             });
 
-            res.cookie('refreshToken', refreshToken, { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 });
+            const cookieSettings = process.env.NODE_ENV === "production" ? { httpOnly: true, maxAge: 60 * 60 * 24 * 1000, secure: true, sameSite: "none" } : { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 }
+
+            res.cookie('refreshToken', refreshToken, cookieSettings);
 
             res.status(200).json({ error: false, message: "Logado com sucesso.", data: { user, accessToken } });
         } catch (e) {
             res.status(401).json({ error: true, message: e.message });
         }
     },
-    loginClient: async(req, res) => {
+    loginClient: async (req, res) => {
         try {
             const { email, senha } = req.body;
 
@@ -51,7 +53,9 @@ const authController = {
                 refreshToken
             });
 
-            res.cookie('refreshToken', refreshToken, { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 });
+            const cookieSettings = process.env.NODE_ENV === "production" ? { httpOnly: true, maxAge: 60 * 60 * 24 * 1000, secure: true, sameSite: "none" } : { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 }
+
+            res.cookie('refreshToken', refreshToken, cookieSettings);
 
             res.status(200).json({ error: false, message: "Logado com sucesso.", data: { user, accessToken } });
         } catch (e) {
