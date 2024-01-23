@@ -5,7 +5,8 @@
   "author": "João Pedro Bruno Machado",
   "license": "MIT",
   "scripts": {
-    "dev": "nodemon index.js"
+    "dev": "nodemon index.js",
+    "start": "nodemon index.js"
   },
   "dependencies": {
     "archiver": "^6.0.1",
