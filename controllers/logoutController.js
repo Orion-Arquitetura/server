@@ -4,7 +4,9 @@ const jwt = require("jsonwebtoken");
 
 const logoutController = {
     logout: async (req, res) => {
-        res.clearCookie("refreshToken", { sameSite: "None" });
+        const cookieSettings = process.env.NODE_ENV === "production" ? { httpOnly: true, secure: true, sameSite: "None" } : { httpOnly: true }
+
+        res.clearCookie("refreshToken", cookieSettings);
         res.status(200).end();
     }
 };
