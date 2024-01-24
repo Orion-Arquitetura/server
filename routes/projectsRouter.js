@@ -12,6 +12,9 @@ projectsRouter.post("/", verifyJWT, (req, res) => projectsController.createProje
 projectsRouter.delete("/:projectID", verifyJWT, (req, res) => projectsController.deleteProject(req, res));
 projectsRouter.put("/changeProjectEtapa", verifyJWT, (req, res) => projectsController.changeProjectEtapa(req, res))
 
+projectsRouter.patch("/addUserToProject", verifyJWT, (req, res) => projectsController.addUserToProject(req, res))
+projectsRouter.patch("/removeUserFromProject", verifyJWT, (req, res) => projectsController.removeUserFromProject(req, res))
+
 projectsRouter.put("/removeProjetistaFromProject", verifyJWT, (req, res) => projectsController.removeProjetistaFromProject(req, res));
 projectsRouter.put("/addProjetistaToProject", verifyJWT, (req, res) => projectsController.addProjetistaToProject(req, res));
 

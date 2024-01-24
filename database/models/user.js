@@ -81,9 +81,13 @@ UserSchema.virtual("nome_completo").get(function () {
     return `${this.nome} ${this.sobrenome}`
 })
 
+UserSchema.virtual("data_aniversario_formatada").get(function () {
+    return new Date(this.data_aniversario).toLocaleDateString("pt-br", {timeZone: "UTC"})
+})
+
 UserSchema.set("toJSON", { getters: true })
 
-UserSchema.statics.createUser = async function ({ nome, email, tipo, sobrenome = "", data_aniversario = "", idade = "" }) {
+UserSchema.statics.createUser = async function ({ nome, email, tipo, sobrenome = "", data_aniversario = ""}) {
     if (!nome) {
         throw Error("O nome é obrigatório.");
     }
@@ -113,7 +117,6 @@ UserSchema.statics.createUser = async function ({ nome, email, tipo, sobrenome =
         tipo,
         senha: hash,
         data_aniversario,
-        idade,
     });
 
     user.senha = "";

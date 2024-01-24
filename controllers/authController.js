@@ -24,8 +24,6 @@ const authController = {
                 refreshToken
             });
 
-            console.log("to aqui: " + process.env.NODE_ENV)
-
             const cookieSettings = process.env.NODE_ENV === "production" ? { httpOnly: true, maxAge: 60 * 60 * 24 * 1000, secure: true, sameSite: "None" } : { httpOnly: true, maxAge: 60 * 60 * 24 * 1000 }
 
             res.cookie('refreshToken', refreshToken, cookieSettings);

@@ -37,7 +37,7 @@ const projectsController = {
         try {
             const { projectID } = req.params;
 
-            const projeto = await Projeto.findOne({ _id: projectID }).populate("clientes comentarios projetistas entregas arquivos atualizacoes").catch(e => {
+            const projeto = await Projeto.findOne({ _id: projectID }).populate("clientes engenheiros projetistas arquitetos comentarios entregas arquivos atualizacoes").catch(e => {
                 throw new Error(e);
             });
 
@@ -107,279 +107,62 @@ const projectsController = {
             res.status(500).json({ error: true, message: e.message });
         }
     },
-    addClienteToProject: async (req, res) => {
+    addUserToProject: async (req, res) => {
         try {
-            const { projectID, userID } = req.body;
-
-            console.log({ projectID, userID });
-
-            await Projeto.updateOne({ _id: projectID }, {
-                $addToSet: { clientes: userID }
-            }).catch(e => {
-                throw new Error(e);
-            });
+            const { userID, projectID, role } = req.body;
 
             await User.updateOne({ _id: userID }, {
                 $addToSet: {
                     projetos: {
-                        projeto: projectID,
-                        funcao: "cliente"
+                        projeto: new mongoose.Types.ObjectId(projectID),
+                        funcao: role
                     }
                 }
             }).catch(e => {
-                throw new Error(e);
+                throw new Error(e)
             });
 
-            res.status(200).json({ error: false, message: "Cliente adicionado com sucesso" });
+            await Projeto.updateOne({ _id: projectID }, {
+                $addToSet: {
+                    [`${role}s`]: new mongoose.Types.ObjectId(userID)
+                }
+            }).catch(e => {
+                throw new Error(e)
+            });
+
+            res.status(200).json({ error: false, message: "Usuário adicionado com sucesso" });
         } catch (e) {
-            console.log(e);
+            console.log(e)
             res.status(500).json({ error: true, message: e.message });
         }
     },
-    addProjetistaToProject: async (req, res) => {
+    removeUserFromProject: async (req, res) => {
         try {
-            const { projectID, userID } = req.body;
-
-            await Projeto.updateOne({ _id: projectID }, {
-                $addToSet: { projetistas: userID }
-            }).catch(e => {
-                throw new Error(e);
-            });
+            const { userID, projectID, role } = req.body;
+            console.log({ userID, projectID, role } )
 
             await User.updateOne({ _id: userID }, {
-                $addToSet: {
+                $pull: {
                     projetos: {
                         projeto: projectID,
-                        funcao: "projetista"
                     }
                 }
             }).catch(e => {
-                throw new Error(e);
+                throw new Error(e)
             });
-
-            res.status(200).json({ error: false, message: "Projetista adicionado com sucesso" });
-        } catch (e) {
-            console.log(e);
-            res.status(500).json({ error: true, message: e.message });
-        }
-    },
-    addEngenheiroToProject: async (req, res) => {
-        try {
-            const { projectID, userID } = req.body;
 
             await Projeto.updateOne({ _id: projectID }, {
-                $addToSet: { engenheiros: userID }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            await User.updateOne({ _id: userID }, {
-                $addToSet: {
-                    projetos: {
-                        projeto: projectID,
-                        funcao: "engenheiro"
-                    }
-                }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            res.status(200).json({ error: false, message: "Engenheiro adicionado com sucesso" });
-        } catch (e) {
-            console.log(e);
-            res.status(500).json({ error: true, message: e.message });
-        }
-    },
-    addArquitetoToProject: async (req, res) => {
-        try {
-            const { projectID, userID } = req.body;
-
-            await Projeto.updateOne({ _id: projectID }, {
-                $addToSet: { arquitetos: userID }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            await User.updateOne({ _id: userID }, {
-                $addToSet: {
-                    projetos: {
-                        projeto: projectID,
-                        funcao: "arquiteto"
-                    }
-                }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            res.status(200).json({ error: false, message: "Arquiteto adicionado com sucesso" });
-        } catch (e) {
-            console.log(e);
-            res.status(500).json({ error: true, message: e.message });
-        }
-    },
-    // addLiderToProject: async (req, res) => {
-    //     try {
-    //         const { projectID, userID } = req.body;
-
-    //         const projeto = await Projeto.findOneAndUpdate({ _id: projectID }, {
-    //             $set: { lider: userID }
-    //         }).catch(e => {
-    //             throw new Error(e);
-    //         });
-
-    //         await User.updateOne({ _id: projeto.lider }, {
-    //             $pull: {
-    //                 projetos: {
-    //                     projeto: new mongoose.Types.ObjectId(projeto._id)
-    //                 }
-    //             }
-    //         })
-
-    //         await User.updateOne({ _id: userID }, {
-    //             $addToSet: {
-    //                 projetos: { projeto: projectID, funcao: "lider" }
-    //             }
-    //         }).catch(e => {
-    //             throw new Error(e);
-    //         });
-
-    //         res.status(200).json({ error: false, message: "Cliente adicionado com sucesso" });
-    //     } catch (e) {
-    //         console.log(e);
-    //         res.status(500).json({ error: true, message: e.message });
-    //     }
-    // },
-    // removeLiderFromProject: async (req, res) => {
-    //     try {
-    //         const { projectID, userID } = req.body;
-
-    //         await Projeto.updateOne({ _id: projectID }, {
-    //             $set: { lider: null }
-    //         }).catch(e => {
-    //             throw new Error(e);
-    //         });
-
-    //         await User.updateOne({ _id: userID }, {
-    //             $pull: {
-    //                 projetos: { projeto: projectID }
-    //             }
-    //         }).catch(e => {
-    //             throw new Error(e);
-    //         });
-
-    //         res.status(200).json({ error: false, message: "Líder removido com sucesso" });
-    //     } catch (e) {
-    //         console.log(e);
-    //         res.status(500).json({ error: true, message: e.message });
-    //     }
-    // },
-    removeClienteFromProject: async (req, res) => {
-        try {
-            const { projectID, userID } = req.body;
-
-            await Projeto.updateOne({ _id: projectID }, {
-                $pull: { clientes: userID }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            await User.updateOne({ _id: userID }, {
                 $pull: {
-                    projetos: { projeto: projectID }
+                    [`${role}s`]: userID
                 }
             }).catch(e => {
-                throw new Error(e);
+                throw new Error(e)
             });
 
-            res.status(200).json({ error: false, message: "Cliente removido com sucesso" });
+            
+            res.status(200).json({ error: false, message: "Usuário removido com sucesso" });
         } catch (e) {
-            console.log(e);
-            res.status(500).json({ error: true, message: e.message });
-        }
-    },
-    removeArquitetoFromProject: async (req, res) => {
-        try {
-            const { projectID, userID } = req.body;
-
-            await Projeto.updateOne({ _id: projectID }, {
-                $pull: { arquitetos: userID }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            await User.updateOne({ _id: userID }, {
-                $pull: {
-                    projetos: { projeto: projectID }
-                }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            res.status(200).json({ error: false, message: "Arquiteto removido com sucesso" });
-        } catch (e) {
-            console.log(e);
-            res.status(500).json({ error: true, message: e.message });
-        }
-    },
-    removeEngenheiroFromProject: async (req, res) => {
-        try {
-            const { projectID, userID } = req.body;
-
-            await Projeto.updateOne({ _id: projectID }, {
-                $pull: { engenheiros: userID }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            await User.updateOne({ _id: userID }, {
-                $pull: {
-                    projetos: { projeto: projectID }
-                }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            res.status(200).json({ error: false, message: "Engenheiro removido com sucesso" });
-        } catch (e) {
-            console.log(e);
-            res.status(500).json({ error: true, message: e.message });
-        }
-    },
-    removeProjetistaFromProject: async (req, res) => {
-        try {
-            const { projectID, userID } = req.body;
-
-            await Projeto.updateOne({ _id: projectID }, {
-                $pull: { projetistas: userID }
-            }).catch(e => {
-                throw new Error(e);
-            });
-
-            const user = await User.findOneAndUpdate({ _id: userID }, {
-                $pull: {
-                    projetos: { projeto: projectID }
-                }
-            }).populate("revisoes").catch(e => {
-                throw new Error(e);
-            });
-
-            // const revisoesDoProjeto = user.revisoes.filter(revisao => {
-            //     return revisao.projeto.toString() === (projectID && (revisao.status !== "Entregue"))
-            // })
-
-            // console.log({ revisoesDoProjeto })
-
-            // await User.updateOne({ _id: userID }, {
-            //     $pull: {
-            //         revisoes: { $in: revisoesDoProjeto }
-            //     }
-            // })
-
-            // await Revisao.findByIdAndDelete({ _id: { $in: revisoesDoProjeto } })
-
-            res.status(200).json({ error: false, message: "Projetista removido com sucesso" });
-        } catch (e) {
-            console.log(e);
+            console.log(e)
             res.status(500).json({ error: true, message: e.message });
         }
     },
@@ -549,11 +332,11 @@ const projectsController = {
         try {
             const { atualizacaoID } = req.params
 
-            
+
             const atualizacaoDocument = await Atualizacao.findOneAndDelete({ _id: atualizacaoID }).catch(e => {
                 throw new Error(e)
             });
-            
+
             await Projeto.updateOne({ _id: atualizacaoDocument.projeto }, {
                 $pull: {
                     atualizacoes: new mongoose.Types.ObjectId(atualizacaoDocument._id)
