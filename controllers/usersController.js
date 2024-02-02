@@ -1,5 +1,7 @@
 const Session = require("../database/models/session.js");
 const User = require("../database/models/user.js");
+const Atividade = require("../database/models/atividade.js");
+const Projeto = require("../database/models/projeto.js");
 const jwt = require("jsonwebtoken");
 const mongoose = require("mongoose");
 
@@ -8,7 +10,9 @@ const usersController = {
         try {
             const { nome, sobrenome, email, data_aniversario, tipo } = req.body;
 
-            const user = await User.createUser({
+            console.log({ nome, sobrenome, email, data_aniversario, tipo })
+
+            await User.createUser({
                 nome,
                 sobrenome,
                 email,
@@ -21,6 +25,7 @@ const usersController = {
 
             res.status(200).json({ error: false, message: "Usuário criado com sucesso." });
         } catch (e) {
+            console.log({ e })
             res.status(500).json({ error: true, message: e.message });
         }
     },
@@ -28,9 +33,28 @@ const usersController = {
         try {
             const { userID } = req.params;
 
-            await User.deleteOne({ _id: userID }).catch((e) => {
+            const user = await User.findOneAndDelete({ _id: userID }).catch((e) => {
                 throw new Error(e);
             });
+
+            console.log({ user })
+
+            if (user.projetos.length > 0) {
+                const operations = user.projetos.map(projeto => {
+                    return {
+                        updateOne: {
+                            filter: { _id: projeto.projeto },
+                            update: {
+                                $pull: {
+                                    [`${projeto.funcao}s`]: userID
+                                }
+                            }
+                        }
+                    }
+                })
+
+                await Projeto.bulkWrite(operations)
+            }
 
             res.status(200).json({ error: false, message: "Usuário excluído com sucesso." });
         } catch (e) {
@@ -57,15 +81,17 @@ const usersController = {
             const { userID } = req.params;
 
             const user = await User.findOne({ _id: userID })
-                .populate({
-                    path: "revisoes",
+                .populate([{
+                    path: "revisoes projetos",
                     populate: [
                         { path: "projeto", model: "Projeto" },
                         { path: "atribuidaPor", model: "User" },
                         { path: "arquivoInicial", model: "Arquivo" },
                         { path: "arquivoFinal", model: "Arquivo" },
                     ],
-                })
+                }, {
+                    path: "atividades"
+                }])
                 .exec()
                 .catch((e) => {
                     throw new Error(e);
@@ -117,6 +143,10 @@ const usersController = {
         try {
             const { userID, newPassword } = req.body;
 
+            if (userID !== req.user.id) {
+                return res.status(401)
+            }
+
             await User.changePassword({ userID, newPassword }).catch((e) => {
                 throw new Error(e);
             });
@@ -130,6 +160,10 @@ const usersController = {
     changeUserEmail: async (req, res) => {
         try {
             const { userID, newEmail } = req.body;
+
+            if (userID !== req.user.id) {
+                return res.status(401)
+            }
 
             await User.changeEmail({ userID, newEmail }).catch((e) => {
                 throw new Error(e);

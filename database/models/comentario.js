@@ -13,7 +13,6 @@ const ComentarioSchema = new mongoose.Schema({
     projeto: {
         type: mongoose.Types.ObjectId,
         ref: "Projeto",
-        required: true
     },
     entrega: {
         type: mongoose.Types.ObjectId,

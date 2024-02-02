@@ -15,12 +15,6 @@ projectsRouter.put("/changeProjectEtapa", verifyJWT, (req, res) => projectsContr
 projectsRouter.patch("/addUserToProject", verifyJWT, (req, res) => projectsController.addUserToProject(req, res))
 projectsRouter.patch("/removeUserFromProject", verifyJWT, (req, res) => projectsController.removeUserFromProject(req, res))
 
-projectsRouter.put("/removeProjetistaFromProject", verifyJWT, (req, res) => projectsController.removeProjetistaFromProject(req, res));
-projectsRouter.put("/addProjetistaToProject", verifyJWT, (req, res) => projectsController.addProjetistaToProject(req, res));
-
-projectsRouter.put("/removeClienteFromProject", verifyJWT, (req, res) => projectsController.removeClienteFromProject(req, res));
-projectsRouter.put("/addClienteToProject", verifyJWT, (req, res) => projectsController.addClienteToProject(req, res));
-
 projectsRouter.patch("/addComment", verifyJWT, (req, res) => projectsController.addComment(req, res))
 projectsRouter.patch("/editComment", verifyJWT, (req, res) => projectsController.editComment(req, res))
 projectsRouter.delete("/deleteComment/:commentID", verifyJWT, (req, res) => projectsController.deleteComment(req, res))

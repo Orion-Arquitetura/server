@@ -10,11 +10,13 @@ const Conteudo = require("../database/models/conteudo.js");
 const { createReadStream } = require("fs");
 const dbconnection = require("../database/dbconn.js");
 const { GridFSBucket } = require("mongodb");
+const archiver = require('archiver');
 const path = require("path");
 const Revisao = require("../database/models/revisao.js");
 const Arquivo = require("../database/models/arquivo.js");
 const { readable } = require("stream")
-const archiver = require("archiver");
+const Comentario = require("../database/models/comentario.js");
+const Atividade = require("../database/models/atividade.js");
 
 const filesController = {
     createFile: async (req, res) => {
@@ -53,6 +55,21 @@ const filesController = {
 
                 await Arquivo.createFile(filename, fileExt, project._id, numeroDaPrancha, disciplina._id, conteudo._id, etapa._id, versao, req.user.id, gridID, visivelParaCliente)
 
+                const atividade = await Atividade.create({
+                    usuario: new mongoose.Types.ObjectId(req.user.id),
+                    mensagem: `${req.user.nome} fez o upload do arquivo ${filename}.`
+                }).catch(e => {
+                    throw new Error(e)
+                })
+
+                await User.updateOne({ _id: req.user.id }, {
+                    $addToSet: {
+                        atividades: new mongoose.Types.ObjectId(atividade._id)
+                    }
+                }).catch(e => {
+                    throw new Error(e)
+                })
+
                 res.status(201).json({ error: false, message: "Arquivo criado com sucesso", data: { projectID: project._id, disciplina: disciplina._id } })
             })
 
@@ -78,7 +95,40 @@ const filesController = {
                 throw new Error(e)
             })
 
+            const atividade = await Atividade.create({
+                usuario: new mongoose.Types.ObjectId(req.user.id),
+                mensagem: `${req.user.nome} excluiu o arquivo ${arquivo.nome}.`
+            }).catch(e => {
+                throw new Error(e)
+            })
+
+            await User.updateOne({ _id: req.user.id }, {
+                $addToSet: {
+                    atividades: new mongoose.Types.ObjectId(atividade._id)
+                }
+            }).catch(e => {
+                throw new Error(e)
+            })
+
             res.status(200).json({ error: false, message: "Arquivo deletado com sucesso", data: { projectID: arquivo.projeto, disciplina: arquivo.disciplina } })
+        } catch (e) {
+            console.log(e);
+            res.status(500).json({ error: true, message: e.message });
+        }
+    },
+    getOneFile: async (req, res) => {
+        try {
+            const { fileID } = req.params
+
+            const file = await Arquivo.findOne({ _id: fileID }).populate("criadoPor projeto pedido_revisao conteudo disciplina etapa entregas comentarios atualizacoes comentarios.usuario").catch(e => {
+                throw new Error(e)
+            })
+
+            const filePopulated = await file.populate("comentarios.usuario")
+
+            console.log({ comments: filePopulated.comentarios })
+
+            res.status(200).json({ error: false, message: "Ok", data: file })
         } catch (e) {
             console.log(e);
             res.status(500).json({ error: true, message: e.message });
@@ -152,6 +202,26 @@ const filesController = {
                     throw new Error(e)
                 })
 
+                const atividadeString = arquivo.revisao === Number(fields.revisao[0]) ?
+                    `${req.user.nome} fez o upload de uma atualização do arquivo ${arquivo.nome} sem alterar o número de revisão.`
+                    :
+                    `${req.user.nome} fez o upload de uma atualização do arquivo ${arquivo.nome} alterando o número de revisão para R${revisao}.`
+
+                const atividade = await Atividade.create({
+                    usuario: new mongoose.Types.ObjectId(req.user.id),
+                    mensagem: atividadeString
+                }).catch(e => {
+                    throw new Error(e)
+                })
+
+                await User.updateOne({ _id: req.user.id }, {
+                    $addToSet: {
+                        atividades: new mongoose.Types.ObjectId(atividade._id)
+                    }
+                }).catch(e => {
+                    throw new Error(e)
+                })
+
                 res.status(200).json({ error: false, message: "Arquivo atualizado com sucesso", data: { projectID: arquivo.projeto, disciplina: arquivo.disciplina } })
             })
 
@@ -168,9 +238,74 @@ const filesController = {
             res.status(500).json({ error: true, message: e.message })
         }
     },
+    addComment: async (req, res) => {
+        try {
+            const { fileID, comment, visivelParaCliente } = req.body;
 
+            const comentario = await Comentario.create({
+                conteudo: comment,
+                usuario: new mongoose.Types.ObjectId(req.user.id),
+                arquivo: new mongoose.Types.ObjectId(fileID),
+                visivelParaCliente
+            }).catch(e => {
+                throw new Error(e)
+            });
 
-    // IMPORTANTE REVISAR TODAS AS FUNCOES ABAIXO
+            await Arquivo.updateOne({ _id: fileID }, {
+                $addToSet: {
+                    comentarios: new mongoose.Types.ObjectId(comentario._id)
+                }
+            }).catch(e => {
+                throw new Error(e)
+            });
+
+            res.status(200).json({ error: false, message: "Comentário adicionado com sucesso." })
+
+        } catch (e) {
+            console.log(e);
+            res.status(500).json({ error: true, message: e.message });
+        }
+    },
+    deleteComment: async (req, res) => {
+        try {
+            const { commentID } = req.params
+
+            const comentario = await Comentario.findOneAndDelete({ _id: commentID }).catch(e => {
+                throw new Error(e)
+            });
+
+            await Arquivo.updateOne({ _id: comentario.projeto }, {
+                $pull: {
+                    comentarios: commentID
+                }
+            }).catch(e => {
+                throw new Error(e)
+            });
+
+            res.status(200).json({ error: false, message: "Comentário excluído com sucesso." })
+        } catch (e) {
+            console.log(e);
+            res.status(500).json({ error: true, message: e.message });
+        }
+    },
+    editComment: async (req, res) => {
+        try {
+            const { commentID, comment } = req.body
+
+            await Comentario.updateOne({ _id: commentID }, {
+                $set: {
+                    conteudo: comment
+                }
+            }).catch(e => {
+                throw new Error(e)
+            });
+
+            res.status(200).json({ error: false, message: "Comentário editada com sucesso." })
+        } catch (e) {
+            console.log(e);
+            res.status(500).json({ error: true, message: e.message });
+        }
+    },
     getFileBinaries: async (req, res) => {
         try {
             const { gridID } = req.params;
@@ -184,108 +319,41 @@ const filesController = {
             res.status(500).json({ error: true, message: e.message });
         }
     },
-    getOneFileMetadata: async (req, res) => {
-        try {
-            const { fileID } = req.params;
-            const filesMetadataCollection = mongoose.connection.collection("Arquivos.files");
-            const fileMetadata = await filesMetadataCollection.findOne({ _id: new mongoose.Types.ObjectId(fileID) })
-
-            res.status(200).json({ error: false, message: "Ok", data: fileMetadata })
-
-        } catch (e) {
-            console.log(e);
-            res.status(500).json({ error: true, message: e.message });
-        }
-    },
-    createOneFile: async (req, res) => {
-        try {
-            const { bucket } = await dbconnection();
-
-            const form = new formidable.IncomingForm({ keepExtensions: true });
-
-            const [fields, files] = await form.parse(req).then(res => { console.log(res); return res })
-
-            const parsedFields = fields.fileData.map((f, index) => ({ fileMetadata: JSON.parse(f), file: files.file[index] }))
-
-            const projectData = await Projeto.findById(parsedFields[0].fileMetadata.projectID).exec()
-
-            const fileName = `${projectData.ano}-${projectData.numero > 9 ? projectData.numero : `0${projectData.numero}`}-${projectData.nome}-${parsedFields[0].fileMetadata.numeroPrancha}-${parsedFields[0].fileMetadata.conteudo}-${parsedFields[0].fileMetadata.disciplina}-${parsedFields[0].fileMetadata.etapaDoProjeto}-R00`;
-
-            const disciplinaData = await Disciplina.findOne({ sigla: parsedFields[0].fileMetadata.disciplina })
-
-            const newFileMetadata = {
-                projeto: {
-                    id: new mongoose.Types.ObjectId(parsedFields[0].fileMetadata.projectID),
-                    nome: projectData.nome,
-                },
-                numeroDaPrancha: parsedFields[0].fileMetadata.numeroPrancha,
-                conteudo: parsedFields[0].fileMetadata.conteudo,
-                disciplina: parsedFields[0].fileMetadata.disciplina,
-                etapa: parsedFields[0].fileMetadata.etapaDoProjeto,
-                versao: 0,
-                ultimaVersao: true,
-                emRevisao: false,
-                revisao: null,
-                criadoPor: {
-                    userName: req.user.nome,
-                    userId: req.user.id,
-                },
-                extensao: path.extname(files.file[0].originalFilename)
-            };
-
-            const fileAlreadyExists = await bucket
-                .find({ filename: fileName })
-                .toArray();
-
-            if (fileAlreadyExists.length > 0) {
-                throw new Error(
-                    `Arquivo ${fileAlreadyExists[0].filename} já existe. Se deseja criar uma nova versão solicite uma revisão.`
-                );
-            }
-
-            const uploadStream = bucket.openUploadStream(fileName, {
-                metadata: newFileMetadata,
-            });
-
-            try {
-                const newFileId = uploadStream.id;
-
-                await Projeto.updateOne({ _id: projectData._id }, {
-                    $addToSet: { arquivos: { arquivoID: newFileId, disciplina: disciplinaData._id } }
-                })
-
-                const readStream = createReadStream(parsedFields[0].file.filepath);
-
-                readStream.pipe(uploadStream);
-
-                uploadStream.on("finish", () => {
-                    res.status(201).json({ error: false, message: "Arquivo criado com sucesso" })
-                })
-
-                uploadStream.on("error", (e) => {
-                    throw e
-                })
-
-            } catch (e) {
-                console.log(e)
-                throw e
-            }
-        } catch (e) {
-            console.log(e)
-            res.status(400).json({ error: true, message: e.message });
-            return;
-        }
-    },
-
-    
-    //DANGER ZONE: download multiple files
     downloadMultipleFiles: async (req, res) => {
         try {
-            const filesIds = req.query.filesIds
+            let filesIds = (req.query.fileIds).match(/[^,]+/g)
 
-            console.log({ filesIds })
+            const arquivo = await Arquivo.find({ gridID: { $in: filesIds } })
 
-            return res.status(200).json({ error: false, message: "Ok" });
+            const filesData = filesIds.map((fileId, index) => {
+                return {
+                    fileId,
+                    nome: arquivo[index].nome,
+                    extensao: arquivo[index].extensao
+                }
+            })
+
+            const { bucket } = await dbconnection();
+
+            res.set("Content-Type", "application/zip");
+            res.set("Content-Disposition", `attachment; filename=files.zip`);
+
+            const archive = archiver("zip", {
+                zlib: { level: 9 },
+            });
+
+            archive.pipe(res);
+
+            filesData.forEach(({ fileId, nome, extensao }) => {
+
+                const downloadStream = bucket.openDownloadStream(
+                    new mongoose.Types.ObjectId(fileId)
+                );
+
+                archive.append(downloadStream, { name: `${nome}${extensao}` });
+            });
+
+            archive.finalize();
         } catch (e) {
             console.log(e)
             return res.status(400).json({ error: true, message: e.message });
