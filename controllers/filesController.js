@@ -41,7 +41,7 @@ const filesController = {
             const fileAlreadyExists = await Arquivo.findOne({ nome: filename })
 
             if (fileAlreadyExists) {
-                throw new Error("Arquivo já existe. Se deseja criar uma nova versão solicite uma revisão.");
+                throw new Error("Arquivo " + filename + " já existe.");
             }
 
             const fileExt = path.extname(file.originalFilename)

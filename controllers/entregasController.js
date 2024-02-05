@@ -177,35 +177,74 @@ const entregasController = {
             res.status(500).json({ error: true, message: e.message })
         }
     },
-    addEntregaComment: async (req, res) => {
+    addComment: async (req, res) => {
         try {
-            const { projectID, entregaID, comment, visivelParaCliente } = req.body;
-
-            console.log({ projectID, entregaID, comment, visivelParaCliente })
+            const { entregaID, comment, visivelParaCliente } = req.body;
 
             const comentario = await Comentario.create({
                 conteudo: comment,
                 usuario: new mongoose.Types.ObjectId(req.user.id),
-                projeto: new mongoose.Types.ObjectId(projectID),
                 entrega: new mongoose.Types.ObjectId(entregaID),
                 visivelParaCliente
             }).catch(e => {
                 throw new Error(e)
-            })
+            });
 
-            await Entrega.updateOne({_id: entregaID}, {
+            await Entrega.updateOne({ _id: entregaID }, {
                 $addToSet: {
                     comentarios: new mongoose.Types.ObjectId(comentario._id)
                 }
-            })
+            }).catch(e => {
+                throw new Error(e)
+            });
 
-            res.status(200).json({ error: false, message: "ok" })
+            res.status(200).json({ error: false, message: "Comentário adicionado com sucesso." })
 
         } catch (e) {
-            console.log(e)
-            res.status(500).json({ error: true, message: e.message })
+            console.log(e);
+            res.status(500).json({ error: true, message: e.message });
         }
-    }
+    },
+    deleteComment: async (req, res) => {
+        try {
+            const { commentID } = req.params
+
+            const comentario = await Comentario.findOneAndDelete({ _id: commentID }).catch(e => {
+                throw new Error(e)
+            });
+
+            await Entrega.updateOne({ _id: comentario.entrega }, {
+                $pull: {
+                    comentarios: commentID
+                }
+            }).catch(e => {
+                throw new Error(e)
+            });
+
+            res.status(200).json({ error: false, message: "Comentário excluído com sucesso." })
+        } catch (e) {
+            console.log(e);
+            res.status(500).json({ error: true, message: e.message });
+        }
+    },
+    editComment: async (req, res) => {
+        try {
+            const { commentID, comment } = req.body
+
+            await Comentario.updateOne({ _id: commentID }, {
+                $set: {
+                    conteudo: comment
+                }
+            }).catch(e => {
+                throw new Error(e)
+            });
+
+            res.status(200).json({ error: false, message: "Comentário editada com sucesso." })
+        } catch (e) {
+            console.log(e);
+            res.status(500).json({ error: true, message: e.message });
+        }
+    },
 }
 
 module.exports = entregasController

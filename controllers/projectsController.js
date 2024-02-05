@@ -41,7 +41,7 @@ const projectsController = {
                 throw new Error(e);
             });
 
-            const projetoPopulado = await projeto.populate("etapa arquivos.disciplina arquivos.etapa arquivos.criadoPor arquivos.revisao comentarios.usuario  comentarios.projeto atualizacoes.emissor")
+            const projetoPopulado = await projeto.populate("etapa arquivos.disciplina arquivos.etapa arquivos.criadoPor arquivos.revisao comentarios.usuario atualizacoes.emissor")
 
             res.status(200).json({ error: false, message: "Ok - GetOneProject", data: projetoPopulado });
         } catch (e) {
