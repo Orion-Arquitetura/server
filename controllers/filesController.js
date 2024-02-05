@@ -34,9 +34,9 @@ const filesController = {
             const etapa = await Etapa.findOne({ _id: fields.etapa[0] });
 
             const file = (files.arquivo)[0];
-            const versao = file.originalFilename.match(/\d{2}(?=\.)/)[0]
+            const versao = file.originalFilename.match(/R\d{2}(?=\.)/)[0]
 
-            const filename = `${project.ano}-${project.numero > 9 ? project.numero : `0${project.numero}`}-${project.nome}-${numeroDaPrancha}-${conteudo.sigla}-${disciplina.sigla}-${etapa.sigla}-R${versao}`;
+            const filename = `${project.ano}-${project.numero > 9 ? project.numero : `0${project.numero}`}-${project.nome}-${numeroDaPrancha}-${conteudo.sigla}-${disciplina.sigla}-${etapa.sigla}-${versao}`;
 
             const fileAlreadyExists = await Arquivo.findOne({ nome: filename })
 
@@ -53,7 +53,7 @@ const filesController = {
             uploadStream.on("finish", async () => {
                 console.log("Upload finalizado")
 
-                await Arquivo.createFile(filename, fileExt, project._id, numeroDaPrancha, disciplina._id, conteudo._id, etapa._id, versao, req.user.id, gridID, visivelParaCliente)
+                await Arquivo.createFile(filename, fileExt, project._id, numeroDaPrancha, disciplina._id, conteudo._id, etapa._id, versao.match(/\d{2}/)[0], req.user.id, gridID, visivelParaCliente)
 
                 const atividade = await Atividade.create({
                     usuario: new mongoose.Types.ObjectId(req.user.id),
