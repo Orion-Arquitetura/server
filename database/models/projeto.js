@@ -9,6 +9,11 @@ const ProjetoSchema = new mongoose.Schema({
             return value.toUpperCase()
         }
     },
+    lider: {
+        type: mongoose.Types.ObjectId,
+        ref: "User",
+        default: null
+    },
     projetistas: {
         type: [{ type: mongoose.Types.ObjectId, ref: "User" }],
         default: []
@@ -61,6 +66,12 @@ const ProjetoSchema = new mongoose.Schema({
             ref: "Atualizacao",
         }],
         default: []
+    },
+    relatorios: {
+        type: [{
+            type: mongoose.Types.ObjectId, 
+            ref: "Relatorio"
+        }]
     }
 }, { timestamps: true });
 

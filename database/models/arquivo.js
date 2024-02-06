@@ -97,8 +97,7 @@ const ArquivoSchema = new mongoose.Schema({
 }, { timestamps: true })
 
 ArquivoSchema.virtual("revisao_string").get(function () {
-    const reviewString = this.revisao.toString();
-    return "R" + (this.revisao < 9 ? reviewString.padStart(2, "0") : reviewString)
+    return "R" + this.revisao.toString().padStart(2, "0")
 })
 
 ArquivoSchema.set('toJSON', { virtuals: true })
@@ -131,64 +130,10 @@ ArquivoSchema.statics.createFile = async function (filename, fileExt, projeto, n
     return newFile
 }
 
-//IMPORTANTE!!!!!!! ATUALIZAR METODOS ABAIXO PARA NOVA FORMA DE UPLOAD ONDE O USUARIO DEFINIRÁ A VERSAO (R**)
-
-// ArquivoSchema.statics.createNewVersionFile = async function (filename, fileExt, projeto, versao, numeroDaPrancha, disciplina, conteudo, etapa, criadoPor, gridID, revisaoGeratriz) {
-
-//     const newFile = await this.create({
-//         nome: filename,
-//         extensao: fileExt,
-//         projeto,
-//         numeroDaPrancha,
-//         disciplina,
-//         conteudo,
-//         etapa,
-//         versao,
-//         criadoPor,
-//         gridID,
-//         revisaoGeratriz
-//     }).catch(e => {
-//         throw new Error(e)
-//     })
-
-//     await Projeto.updateOne({ _id: projeto }, {
-//         $addToSet: {
-//             arquivos: newFile._id
-//         }
-//     }).catch(e => {
-//         throw new Error(e)
-//     })
-
-//     return newFile
-// }
-
-
 ArquivoSchema.statics.deleteFile = async function (id) {
-
-    // const arquivoDocument = await this.findOneAndDelete({ _id: id }).populate("revisaoGeratriz").catch(e => {
-    //     throw new Error(e)
-    // })
     const arquivoDocument = await this.findOneAndDelete({ _id: id }).catch(e => {
         throw new Error(e)
     })
-
-    console.log({ arquivoDocument })
-    console.log({ id })
-
-    // if (arquivoDocument.entregas.length > 0) {
-    //     throw new Error("Para excluir o arquivo primeiro retire-o de todas as entregas das quais faz parte.")
-    // }
-
-    // if (arquivoDocument.revisaoGeratriz) {
-    //     await this.updateOne({ _id: arquivoDocument.revisaoGeratriz.arquivoInicial }, {
-    //         $set: {
-    //             ultimaVersao: true,
-    //             revisao: null
-    //         }
-    //     }).catch(e => {
-    //         throw new Error(e)
-    //     })
-    // }
 
     Projeto.updateOne({ _id: arquivoDocument.projeto }, {
         $pull: {
@@ -206,7 +151,6 @@ ArquivoSchema.statics.deleteFile = async function (id) {
 
     return arquivoDocument
 }
-
 
 const Arquivo = mongoose.models.Arquivo || mongoose.model("Arquivo", ArquivoSchema, "Arquivos")
 

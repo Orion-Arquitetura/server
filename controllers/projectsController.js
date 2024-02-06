@@ -37,7 +37,7 @@ const projectsController = {
         try {
             const { projectID } = req.params;
 
-            const projeto = await Projeto.findOne({ _id: projectID }).populate("clientes engenheiros projetistas arquitetos comentarios entregas arquivos atualizacoes").catch(e => {
+            const projeto = await Projeto.findOne({ _id: projectID }).populate("lider clientes engenheiros projetistas arquitetos comentarios entregas arquivos atualizacoes").catch(e => {
                 throw new Error(e);
             });
 
@@ -122,6 +122,34 @@ const projectsController = {
                 throw new Error(e)
             });
 
+            if (role === "líder") {
+                const projeto = await Projeto.findOneAndUpdate({ _id: projectID }, {
+                    $set: {
+                        lider: new mongoose.Types.ObjectId(userID)
+                    }
+                }).catch(e => {
+                    throw new Error(e)
+                });
+
+                if (projeto.lider) {
+                    await User.updateOne({ _id: projeto.lider }, {
+                        $pull: {
+                            projetos: {
+                                projeto: projectID,
+                            }
+                        }
+                    }).catch(e => {
+                        throw new Error(e)
+                    });
+                }
+
+                console.log({ projeto })
+
+                res.status(200).json({ error: false, message: "Usuário adicionado com sucesso" });
+
+                return
+            }
+
             await Projeto.updateOne({ _id: projectID }, {
                 $addToSet: {
                     [`${role}s`]: new mongoose.Types.ObjectId(userID)
@@ -139,7 +167,7 @@ const projectsController = {
     removeUserFromProject: async (req, res) => {
         try {
             const { userID, projectID, role } = req.body;
-            console.log({ userID, projectID, role } )
+            console.log({ userID, projectID, role })
 
             await User.updateOne({ _id: userID }, {
                 $pull: {
@@ -151,6 +179,22 @@ const projectsController = {
                 throw new Error(e)
             });
 
+            if (role === "líder") {
+                console.log("aqui")
+                await Projeto.updateOne({ _id: projectID }, {
+                    $set: {
+                        lider: null
+                    }
+                }).catch(e => {
+                    throw new Error(e)
+                });
+
+
+                res.status(200).json({ error: false, message: "Usuário removido com sucesso" });
+
+                return
+            }
+
             await Projeto.updateOne({ _id: projectID }, {
                 $pull: {
                     [`${role}s`]: userID
@@ -159,7 +203,7 @@ const projectsController = {
                 throw new Error(e)
             });
 
-            
+
             res.status(200).json({ error: false, message: "Usuário removido com sucesso" });
         } catch (e) {
             console.log(e)
