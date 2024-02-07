@@ -14,7 +14,6 @@ const archiver = require('archiver');
 const path = require("path");
 const Revisao = require("../database/models/revisao.js");
 const Arquivo = require("../database/models/arquivo.js");
-const { readable } = require("stream")
 const Comentario = require("../database/models/comentario.js");
 const Atividade = require("../database/models/atividade.js");
 

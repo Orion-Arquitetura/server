@@ -16,6 +16,7 @@ const Entrega = require('./database/models/entrega.js');
 const mongoose = require("mongoose");
 const entregasRouter = require('./routes/entregasRouter.js');
 const notificationsRouter = require('./routes/notificationsRouter.js');
+const relatoriosRouter = require('./routes/relatoriosRouter.js');
 
 require("dotenv").config()
 const app = express();
@@ -45,6 +46,7 @@ app.use('/files', filesRouter);
 app.use('/reviews', reviewsRouter);
 app.use('/entregas', entregasRouter);
 app.use('/notificacoes', notificationsRouter);
+app.use('/relatorios', relatoriosRouter);
 
 app.listen(4000, () => {
     console.log('Server running.');

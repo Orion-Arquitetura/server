@@ -37,7 +37,7 @@ const projectsController = {
         try {
             const { projectID } = req.params;
 
-            const projeto = await Projeto.findOne({ _id: projectID }).populate("lider clientes engenheiros projetistas arquitetos comentarios entregas arquivos atualizacoes").catch(e => {
+            const projeto = await Projeto.findOne({ _id: projectID }).populate("relatorios lider clientes engenheiros projetistas arquitetos comentarios entregas arquivos atualizacoes").catch(e => {
                 throw new Error(e);
             });
 

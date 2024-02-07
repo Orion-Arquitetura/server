@@ -45,7 +45,7 @@ const UserSchema = new mongoose.Schema(
                     },
                     funcao: {
                         type: String,
-                        enum: ["cliente", "projetista", "engenheiro", "arquiteto"]
+                        enum: ["cliente", "projetista", "engenheiro", "arquiteto", "líder"]
                     }
                 },
             ],
